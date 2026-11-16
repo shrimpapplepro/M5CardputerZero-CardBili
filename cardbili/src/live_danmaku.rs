@@ -324,3 +324,6 @@ fn parse_danmaku(value: &Value) -> Option<Dm> {
         text,
     })
 }
+
+#[cfg(test)]
+mod tests;

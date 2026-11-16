@@ -181,3 +181,6 @@ pub fn cookie(cookies: &str, name: &str) -> Option<String> {
     }
     parse_cookies(cookies).remove(name)
 }
+
+#[cfg(test)]
+mod tests;

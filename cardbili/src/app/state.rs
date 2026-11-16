@@ -116,22 +116,12 @@ pub(super) struct App {
 
 impl App {
     pub(super) fn new(ui: AppWindow, tx: mpsc::Sender<Msg>, settings: Settings) -> Self {
-        crate::emoji::install(&ui);
-        ui.global::<crate::Preferences>()
-            .set_color_emoji(settings.color_emoji);
-        let meta = ui.global::<crate::Meta>();
-        let login = ui.global::<crate::Login>();
         let cookies = crate::net::session::restore();
         crate::diagnostics::write(format_args!(
             "[登录] 已读取登录态 登录={}",
             cookies.is_some()
         ));
-        let mid = cookies.as_deref().map(util::parse_mid).unwrap_or_default();
-
-        meta.set_version(format!("v{}", env!("CARGO_PKG_VERSION")).into());
-        meta.set_about_text("作者  Jad\n\n项目地址\ngithub.com/journey-ad/M5CardputerZero-CardBili\n\n字体\nFusion Pixel Font\ngithub.com/TakWolf/fusion-pixel-font\n\nMona Font\ngithub.com/MonadABXY/mona-font\n\n接口参考\nPiliPlus\ngithub.com/bggRGjQaUbCoE/PiliPlus\n\n图标\nPixelarticons\ngithub.com/halfmage/pixelarticons\n\n".into());
-
-        let ph = util::make_placeholder();
+        let login = ui.global::<crate::Login>();
         let mut page = Page::Home;
         let tab = std::env::var("BILI_TAB")
             .ok()
@@ -148,7 +138,6 @@ impl App {
             .ok()
             .and_then(|s| s.parse::<i32>().ok())
             .unwrap_or(0);
-        let danmaku_view = DanmakuView::new(&ui, settings.color_emoji);
         let mut status = String::from("加载中…");
         let loading = tab.is_video();
 
@@ -156,9 +145,6 @@ impl App {
         let mut requested_play: Option<String> = None;
         let mut login_request = 0u64;
         let mut requested_detail: Option<(String, String)> = None;
-
-        // 跑马灯
-        let last_tick = Instant::now();
 
         let force0 = std::env::var("BILI_FORCE").is_ok();
         if tab == HomeTab::Live {
@@ -208,20 +194,56 @@ impl App {
             .and_then(|s| s.parse::<f64>().ok())
             .map(|s| Instant::now() + Duration::from_secs_f64(s));
 
+        let volume_queue = player::volume::worker(tx.clone());
+        let mut app = Self::with_state(ui, tx, settings, cookies, volume_queue);
+        app.page = page;
+        app.tab = tab;
+        app.view = view;
+        app.help = help;
+        app.sel = sel;
+        app.status = status;
+        app.loading = loading;
+        app.requested_play = requested_play;
+        app.requested_live = requested_live;
+        app.requested_detail = requested_detail;
+        app.login_request = login_request;
+        app.deadline = deadline;
+        app.play_start = std::env::var("BILI_START")
+            .ok()
+            .and_then(|value| value.parse::<f64>().ok())
+            .filter(|value| value.is_finite() && *value >= 0.0)
+            .unwrap_or(0.0);
+        app
+    }
+
+    pub(super) fn with_state(
+        ui: AppWindow,
+        tx: mpsc::Sender<Msg>,
+        settings: Settings,
+        cookies: Option<String>,
+        volume_queue: mpsc::SyncSender<i32>,
+    ) -> Self {
+        crate::emoji::install(&ui);
+        ui.global::<crate::Preferences>()
+            .set_color_emoji(settings.color_emoji);
+        let meta = ui.global::<crate::Meta>();
+        meta.set_version(format!("v{}", env!("CARGO_PKG_VERSION")).into());
+        meta.set_about_text("作者  Jad\n\n项目地址\ngithub.com/journey-ad/M5CardputerZero-CardBili\n\n字体\nFusion Pixel Font\ngithub.com/TakWolf/fusion-pixel-font\n\nMona Font\ngithub.com/MonadABXY/mona-font\n\n接口参考\nPiliPlus\ngithub.com/bggRGjQaUbCoE/PiliPlus\n\n图标\nPixelarticons\ngithub.com/halfmage/pixelarticons\n\n".into());
+
+        let mid = cookies.as_deref().map(util::parse_mid).unwrap_or_default();
+        let ph = util::make_placeholder();
+        let view = settings.list_view;
+        let danmaku_view = DanmakuView::new(&ui, settings.color_emoji);
         let last_input = Instant::now();
         Self {
-            volume_queue: player::volume::worker(tx.clone()),
+            volume_queue,
             history: history::History::new(settings.record_history),
             controls: playback::Controls::default(),
             playback_display: playback::PlaybackDisplay::default(),
             comment_page: comments::Comments::default(),
             sections: sections::Sections::default(),
             requested_cid: None,
-            play_start: std::env::var("BILI_START")
-                .ok()
-                .and_then(|value| value.parse::<f64>().ok())
-                .filter(|value| value.is_finite() && *value >= 0.0)
-                .unwrap_or(0.0),
+            play_start: 0.0,
             comments_request: 0,
             requested_comments: None,
             ui,
@@ -229,15 +251,15 @@ impl App {
             cookies,
             mid,
             ph,
-            page,
-            tab,
+            page: Page::Home,
+            tab: HomeTab::Recommended,
             settings,
             cache_checked: None,
             confirmation: None,
             cdn_request: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
             view,
-            help,
-            sel,
+            help: false,
+            sel: 0,
             lists: vec![Vec::new(); 6],
             covers: vec![Vec::new(); 6],
             covers_started: [false; 6],
@@ -259,16 +281,16 @@ impl App {
             gen: 1,
             danmaku: None,
             danmaku_view,
-            status,
+            status: "加载中…".into(),
             status_detail: String::new(),
-            loading,
+            loading: true,
             detail_bvid: String::new(),
             detail_request: 0,
             detail_display: None,
             play_request: 0,
             current_play: None,
-            requested_play,
-            requested_live,
+            requested_play: None,
+            requested_live: None,
             live_list: home::LiveState::default(),
             live: None,
             live_recovery: playback::LiveRecovery::default(),
@@ -278,7 +300,7 @@ impl App {
             requested_uploader: None,
             requested_related: None,
             requested_login: false,
-            login_request,
+            login_request: 0,
             login_uploader: None,
             history_cursor: model::HistoryCursor::default(),
             history_request: 0,
@@ -304,12 +326,13 @@ impl App {
             grid_scroll: 0.0,
             scroll_context: None,
             about_scroll: 0.0,
-            requested_detail,
+            requested_detail: None,
             detail_scroll: 0.0,
             detail_maxv: 0.0,
             marq_t: 0.0,
-            last_tick,
-            deadline,
+            // 跑马灯
+            last_tick: last_input,
+            deadline: None,
             quit: false,
             seek_pending: None,
             seek_deadline: None,

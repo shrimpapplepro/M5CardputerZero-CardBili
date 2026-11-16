@@ -450,3 +450,6 @@ pub fn invalidate_api(url: &str, cookies: &str) {
         path.display()
     ));
 }
+
+#[cfg(test)]
+mod tests;

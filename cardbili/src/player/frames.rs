@@ -212,3 +212,6 @@ impl Frames {
         self.state.lock().unwrap().latest.take()
     }
 }
+
+#[cfg(test)]
+mod tests;

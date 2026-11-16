@@ -49,3 +49,6 @@ strip = true
 
 [target.'cfg(windows)'.dependencies]
 cpal = "0.15"
+
+[dev-dependencies]
+tempfile = "3"

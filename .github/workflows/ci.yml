@@ -37,6 +37,11 @@ jobs:
       - name: Check desktop build
         working-directory: cardbili
         run: cargo check --locked --features desktop
+      - name: Run unit tests
+        working-directory: cardbili
+        run: |
+          cargo test --locked
+          cargo test --locked --features desktop
       - name: Check scripts, metadata and secrets
         run: bash scripts/check.sh
 
@@ -122,6 +127,10 @@ jobs:
         with:
           workspaces: cardbili -> target
           key: ${{ matrix.target }}
+      - name: Run desktop unit tests
+        if: runner.os != 'Linux'
+        working-directory: cardbili
+        run: cargo test --locked --features desktop --target ${{ matrix.target }}
       - name: Build desktop binary
         working-directory: cardbili
         run: cargo build --release --locked --features desktop --target ${{ matrix.target }}

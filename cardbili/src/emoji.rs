@@ -376,3 +376,6 @@ pub(crate) fn install(ui: &AppWindow) {
         image
     });
 }
+
+#[cfg(test)]
+mod tests;

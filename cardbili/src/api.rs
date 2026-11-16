@@ -727,3 +727,6 @@ pub fn watch_later(cookies: &str) -> Result<model::VideoPage, String> {
         total: None,
     })
 }
+
+#[cfg(test)]
+mod tests;

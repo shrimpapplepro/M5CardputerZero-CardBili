@@ -68,3 +68,6 @@ fn clock_text(sec: i64) -> String {
         format!("{:02}:{:02}", sec / 60, sec % 60)
     }
 }
+
+#[cfg(test)]
+mod tests;

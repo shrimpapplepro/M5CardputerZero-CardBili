@@ -342,3 +342,6 @@ pub fn danmaku_info(room_id: u64, cookies: Option<&str>) -> Result<DanmakuInfo, 
     }
     Ok(DanmakuInfo { token, servers })
 }
+
+#[cfg(test)]
+mod tests;

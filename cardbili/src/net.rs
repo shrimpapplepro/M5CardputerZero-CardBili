@@ -285,3 +285,6 @@ pub fn query_string(params: &[(String, String)]) -> String {
         .collect::<Vec<_>>()
         .join("&")
 }
+
+#[cfg(test)]
+mod tests;

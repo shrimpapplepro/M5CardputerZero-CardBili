@@ -161,13 +161,17 @@ pub fn fmt_num(n: i64) -> String {
 }
 
 pub fn watch_time(ts: i64) -> String {
-    if ts <= 0 {
-        return String::new();
-    }
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
+    watch_time_at(ts, now)
+}
+
+fn watch_time_at(ts: i64, now: i64) -> String {
+    if ts <= 0 {
+        return String::new();
+    }
     let local = ts + 8 * 3600;
     let day = local.div_euclid(86400);
     let sod = local.rem_euclid(86400);
@@ -192,15 +196,19 @@ pub fn date_of(ts: i64) -> String {
     format!("{}-{:02}-{:02}", year, month, date)
 }
 pub fn history_day_label(ts: i64) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    history_day_label_at(ts, now)
+}
+
+fn history_day_label_at(ts: i64, now: i64) -> String {
     if ts <= 0 {
         return String::new();
     }
     let local = ts + 8 * 3600;
     let day = local.div_euclid(86400);
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
     let today = (now + 8 * 3600).div_euclid(86400);
     match today - day {
         0 => "今天".into(),
@@ -294,3 +302,6 @@ pub struct Chapter {
     pub title: String,
     pub start: f64,
 }
+
+#[cfg(test)]
+mod tests;

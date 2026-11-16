@@ -259,3 +259,6 @@ pub fn est_w(s: &str, fs: f64) -> f64 {
         })
         .sum()
 }
+
+#[cfg(test)]
+mod tests;

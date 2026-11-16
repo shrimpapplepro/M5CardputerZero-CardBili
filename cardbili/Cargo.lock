@@ -341,6 +341,7 @@ dependencies = [
  "serde_json",
  "slint",
  "slint-build",
+ "tempfile",
  "tiny-skia",
  "ttf-parser 0.21.1",
  "tungstenite",

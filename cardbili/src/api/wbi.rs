@@ -34,8 +34,12 @@ pub fn fetch_mixin() -> Result<String, String> {
 
 /// 对 params 做 WBI 签名，返回带 wts/w_rid 的新参数表
 pub fn wbi_sign(params: &[(String, String)], mk: &str) -> Vec<(String, String)> {
+    sign_at(params, mk, net::now_secs())
+}
+
+fn sign_at(params: &[(String, String)], mk: &str, timestamp: i64) -> Vec<(String, String)> {
     let mut p: Vec<(String, String)> = params.to_vec();
-    p.push(("wts".into(), net::now_secs().to_string()));
+    p.push(("wts".into(), timestamp.to_string()));
     p.sort_by(|a, b| a.0.cmp(&b.0));
     let filtered: Vec<_> = p
         .iter()
@@ -52,3 +56,6 @@ pub fn wbi_sign(params: &[(String, String)], mk: &str) -> Vec<(String, String)> 
     p.push(("w_rid".into(), rid));
     p
 }
+
+#[cfg(test)]
+mod tests;

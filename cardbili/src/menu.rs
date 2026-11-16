@@ -153,3 +153,6 @@ pub fn actions(
     }
     slots
 }
+
+#[cfg(test)]
+mod tests;
